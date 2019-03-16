@@ -9,7 +9,7 @@ use noise::utils::*;
 use noise::NoiseFn;
 
 const SIZE: usize = 600;
-const NUMBER_OF_ORGANISMS: usize = 20;
+const NUMBER_OF_ORGANISMS: usize = 100;
 const REPRO_LIMIT : i32 = 2;
 
 pub struct Organism {
@@ -22,8 +22,10 @@ pub struct Organism {
 
 impl Organism {
     pub fn change_can_eat(&mut self) {
-        for i in 0..NUMBER_OF_ORGANISMS {
-            self.can_eat[i] = rand::thread_rng().gen::<f32>() < 0.65;
+        if rand::thread_rng().gen::<f32>() > 0.95 {        
+            for i in 0..NUMBER_OF_ORGANISMS {
+                self.can_eat[i] = rand::thread_rng().gen::<f32>() < 0.65;
+            }
         }
     }
 }
@@ -50,12 +52,23 @@ impl Simulation {
         }
     }
 
+    pub fn decay_lava(&mut self) {
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                if self.lava_map[y][x] == true {
+                    self.lava_map[y][x] = self.random_source.gen::<f32>() < 0.95f32;
+                }
+            }
+        }
+    }
+
     pub fn run_simulation_once(&mut self, mutate: bool) { 
         self.try_eat();
         self.starve();
         self.reproduce();
         if mutate {
-            self.mutate();            
+            self.mutate();
+            self.decay_lava();    
         }
     }
 
@@ -77,6 +90,11 @@ impl Simulation {
 
         let mut worst_organism = self.organisms.get_mut(lowest_index).unwrap();
         worst_organism.carnivore_fitness = worst_organism.carnivore_fitness * 2.0;
+
+
+        for i in 0..NUMBER_OF_ORGANISMS {
+            self.organisms[i].change_can_eat();
+        }
 
     }
 
@@ -251,6 +269,8 @@ impl Simulation {
                 is_dead.push(i);
             }
         }
+
+        
 
         let mut range_y : Vec<usize> = (0..SIZE).collect();
         self.random_source.shuffle(&mut range_y);
